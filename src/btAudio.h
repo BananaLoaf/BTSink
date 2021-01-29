@@ -1,89 +1,56 @@
 #ifndef BTAUDIO_H
 #define BTAUDIO_H
 
+#endif
+
+
 #include "Arduino.h"
 #include "esp_bt.h"
 #include "esp_bt_main.h"
 #include "esp_bt_device.h"
 #include "esp_gap_bt_api.h"
 #include "esp_a2dp_api.h"
-#include "driver/i2s.h"
 #include "esp_avrc_api.h"
-#include "filter.h"
-#include "DRC.h"
+#include "driver/i2s.h"
 
-// postprocessing 
-enum {
-    NOTHING = 0,
-    FILTER,
-	COMPRESS,
-	FILTER_COMPRESS,
+
+class BTSink {
+    private:
+        const char *_device_name;
+        static unsigned char *_addr;
+
+        static bool _conn_stat;
+        static esp_a2d_audio_state_t _audio_state;
+
+        static uint32_t _sampleRate;
+        static float _vol;
+
+    public:
+        static String title;
+        static String artist;
+        static String album;
+        static String genre;
+
+
+    private:
+        // Callbacks
+        static void a2dp_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param);
+        static void avrc_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param);
+        static void i2s_cb(const uint8_t *data, uint32_t len);
+
+    public:
+        BTSink(const char *device_name) {_device_name = device_name;};
+
+        // Bluetooth
+        void begin();
+        void end();
+        void set_data_callback(void (*data_callback)(const uint8_t *data, uint32_t len));
+        bool is_connected() {return _conn_stat;};
+
+        // I2S
+        void i2s(int bck, int dout, int ws);
+        void set_volume(float vol);
+
+        // Metadata
+        void update_metadata();
 };
-class btAudio {
-  public:
-	//Constructor
-	btAudio(const char *devName);
-	
-	// Bluetooth functionality
-	void begin();  
-	void end();
-	void setSinkCallback(void (*sinkCallback)(const uint8_t *data, uint32_t len));
-	
-	// I2S Audio
-	void I2S(int bck, int dout, int ws);
-	void volume(float vol);
-    
-	// Filtering
-	void createFilter(int n, float hp,int type);
-	void stopFilter();
-	
-	// Compression
-	void compress(float T,float alphAtt,float alphRel, float R,float w,float mu );
-	void decompress();
-	
-	// meta data
-	void updateMeta();
-	
-	
-	float _T=60.0;
-	float _alphAtt=0.001;
-	float _alphRel=0.1; 
-	float _R=4.0;
-	float _w=10.0;
-	float _mu=0.0; 
-	static String title;
-    static String artist;
-    static String album;
-	static String genre;
-	
-  private:
-    const char *_devName;
-	bool _filtering=false;
-	bool _compressing=false;
-    static uint32_t  _sampleRate;
-	static int _postprocess;
-	
-	// static function causes a static infection of variables
-	static void i2sCallback(const uint8_t *data, uint32_t len);
-	static void a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param);
-	static void avrc_callback(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param);
-	
-	// bluetooth address of connected device
-	static uint8_t _address[6];
-	static DRC _DRCR;
-	static DRC _DRCL;
-	static float _vol;
-	static filter _filtLlp;
-    static filter _filtRlp;
-    static filter _filtLhp;
-    static filter _filtRhp;
-
-
-	
-	
-	
-};
-
-
-
-#endif
